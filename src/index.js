@@ -14,58 +14,129 @@ function jsonResponse(data, status = 200) {
 	});
 }
 
+// --- Name cleaning ---
+
+const AIRLINE_NAMES = {
+	'AIR ALGERIE': 'Air Algerie',
+	'AIR ARABIA MAROC': 'Air Arabia Maroc',
+	'AIR EUROPA': 'Air Europa',
+	'AIR NOSTRUM': 'Air Nostrum',
+	'AUSTRIAN AIRLINES': 'Austrian Airlines',
+	'BA EUROFLYER': 'BA Euroflyer',
+	'BINTER CANARIAS': 'Binter Canarias',
+	'BRITISH CITYFLYER': 'British Cityflyer',
+	'CHAIR AIRLINES AG': 'Chair Airlines',
+	'CONDOR FLUGDIENST': 'Condor',
+	'DISCOVER AIRLINES': 'Discover Airlines',
+	'EASYJET (EZY)': 'EasyJet',
+	'EASYJET EUROPE (EJU)': 'EasyJet Europe',
+	'EDELWEISS AIR AG': 'Edelweiss Air',
+	'EUROWINGS': 'Eurowings',
+	'IBERIA': 'Iberia',
+	'JET2.COM': 'Jet2',
+	'LUFTHANSA': 'Lufthansa',
+	'LUFTHANSA CITY AIRLINES GMBH': 'Lufthansa City Airlines',
+	'LUXAIR': 'Luxair',
+	'MARABU AIRLINES OU': 'Marabu Airlines',
+	'PRIVILEGE STYLE': 'Privilege Style',
+	'RYANAIR (RYR)': 'Ryanair',
+	'SCANDINAVIAN AIRLINES SYSTEM': 'SAS',
+	'SMARTWINGS': 'Smartwings',
+	'SWIFTAIR': 'Swiftair',
+	'SWISS INTERNATIONAL AIR LINES': 'Swiss',
+	'TRANSAVIA': 'Transavia',
+	'TRANSAVIA (TRA)': 'Transavia',
+	'TUIFLY GMBH, LANGENHAGEN': 'TUIfly',
+	'VUELING AIRLINES': 'Vueling',
+};
+
+const CITY_NAMES = {
+	'ALICANTE-ELCHE': 'Alicante',
+	'AMSTERDAM /SCHIPHOL': 'Amsterdam',
+	'ANDORRA / LA SEU D\'URGELL': 'Andorra - La Seu d\'Urgell',
+	'ARGEL/ HOUARI BOUMEDIEN': 'Algiers',
+	'ASTURIAS': 'Asturias',
+	'BADEN BADEN-KARLSRUHE  (FKB)': 'Baden-Baden',
+	'BADEN BADEN-KARLSRUHE (FKB)': 'Baden-Baden',
+	'BARCELONA-EL PRAT JOSEP TARRADELLAS': 'Barcelona',
+	'BASEL /MULHOUSE': 'Basel-Mulhouse',
+	'BERLIN-BRANDERBURG WILLY BRANDT': 'Berlin',
+	'BILBAO': 'Bilbao',
+	'BIRMINGHAM / INTERNACIONAL': 'Birmingham',
+	'BOLONIA': 'Bologna',
+	'BREMEN': 'Bremen',
+	'BRISTOL': 'Bristol',
+	'BRUSELAS /CHARLEROI': 'Brussels Charleroi',
+	'COLONIA/BONN': 'Cologne-Bonn',
+	'COPENHAGUE': 'Copenhagen',
+	'DORTMUND': 'Dortmund',
+	'DRESDEN': 'Dresden',
+	'DUSSELDORF': 'Dusseldorf',
+	'DUSSELDORF /WEEZE': 'Dusseldorf Weeze',
+	'EINDHOVEN': 'Eindhoven',
+	'ESTOCOLMO /ARLANDA': 'Stockholm',
+	'FRANKFURT': 'Frankfurt',
+	'FRANKFURT /HAHN': 'Frankfurt Hahn',
+	'GINEBRA': 'Geneva',
+	'GRAN CANARIA': 'Gran Canaria',
+	'GRANADA-JAÉN F.G.L.': 'Granada',
+	'HAMBURGO': 'Hamburg',
+	'HAMBURGO /LUEBECK': 'Hamburg Lubeck',
+	'HANNOVER': 'Hanover',
+	'IBIZA': 'Ibiza',
+	'JEREZ DE LA FRONTERA': 'Jerez',
+	'LEIPZIG': 'Leipzig',
+	'LEON': 'Leon',
+	'LLEIDA - ALGUAIRE': 'Lleida',
+	'LONDRES /GATWICK': 'London Gatwick',
+	'LONDRES /LONDON CITY APT.': 'London City',
+	'LONDRES /LUTON': 'London Luton',
+	'LONDRES /STANSTED': 'London Stansted',
+	'LUXEMBURGO': 'Luxembourg',
+	'MADRID-BARAJAS ADOLFO SUÁREZ': 'Madrid',
+	'MALAGA-COSTA DEL SOL': 'Malaga',
+	'MALTA': 'Malta',
+	'MANCHESTER': 'Manchester',
+	'MELILLA': 'Melilla',
+	'MEMMINGEN': 'Memmingen',
+	'MENORCA': 'Menorca',
+	'MILAN /MALPENSA': 'Milan Malpensa',
+	'MILAN/BERGAMO': 'Milan Bergamo',
+	'MUENSTER': 'Munster',
+	'MUNICH': 'Munich',
+	'NADOR / EL AROUI': 'Nador',
+	'NUREMBERG': 'Nuremberg',
+	'PARIS /ORLY': 'Paris Orly',
+	'PRAGA': 'Prague',
+	'SANTIAGO-ROSALÍA DE CASTRO': 'Santiago de Compostela',
+	'SEVILLA': 'Seville',
+	'SOFIA': 'Sofia',
+	'SOUTHEND': 'Southend',
+	'STUTTGART': 'Stuttgart',
+	'TENERIFE NORTE-C. LA LAGUNA': 'Tenerife North',
+	'TREVISO/S.ANGELO (MIL)': 'Treviso',
+	'VALENCIA': 'Valencia',
+	'VARSOVIA': 'Warsaw',
+	'VIENA': 'Vienna',
+	'VIGO': 'Vigo',
+	'ZARAGOZA': 'Zaragoza',
+	'ZURICH': 'Zurich',
+};
+
+function cleanAirline(raw) {
+	return AIRLINE_NAMES[raw] || raw.replace(/\s*\([A-Z]{3}\)\s*$/, '').replace(/\bGMBH\b.*$/i, '').replace(/\bAG\b\s*$/i, '').replace(/\bOU\b\s*$/i, '').trim().split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+}
+
+function cleanCity(raw) {
+	return CITY_NAMES[raw] || raw.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+}
+
 // --- HTML Parsing ---
-// AENA structure:
-//   Airlines page: <article class="fila resultado ..."> blocks
-//     - Airline name in: <span class="title bold">AIRLINE NAME</span>
-//     - Destinations in: <span class="nombre">DEST_NAME (IATA)</span>
-//   Destinations page: same structure
-//     - Destination name in: <span class="title bold">DEST (IATA)</span>
-//     - Country in: <span class="titulo">Pais</span><span class="resultado">COUNTRY</span>
-//     - Airlines in: <span class="nombre">AIRLINE</span>
 
 function parseIata(text) {
 	const match = text.match(/\(([A-Z]{3})\)\s*$/);
 	const city = match ? text.replace(match[0], '').trim() : text.trim();
 	return { city, iata: match ? match[1] : null };
-}
-
-async function scrapeAirlines() {
-	const res = await fetch(AENA_AIRLINES_URL, {
-		headers: { 'User-Agent': 'Mozilla/5.0 (compatible; AenaPMI-Worker/1.0)' },
-	});
-	if (!res.ok) throw new Error(`Airlines fetch failed: ${res.status}`);
-	const html = await res.text();
-
-	const airlines = [];
-	// Split into article blocks for each airline row
-	const blockRegex = /<article class="fila resultado[^"]*">([\s\S]*?)<\/article>/gi;
-	const titleRegex = /<span class="title bold">([^<]+)<\/span>/i;
-	const destRegex = /<span class="nombre">([^<]+)<\/span>/gi;
-
-	let blockMatch;
-	while ((blockMatch = blockRegex.exec(html)) !== null) {
-		const block = blockMatch[1];
-
-		const titleMatch = block.match(titleRegex);
-		if (!titleMatch) continue;
-
-		const airlineName = titleMatch[1].trim();
-		const destinations = [];
-		let destMatch;
-		while ((destMatch = destRegex.exec(block)) !== null) {
-			const raw = destMatch[1].trim();
-			const { city, iata } = parseIata(raw);
-			destinations.push({ city, iata, raw });
-		}
-
-		airlines.push({
-			name: airlineName,
-			destinations,
-		});
-	}
-
-	return airlines;
 }
 
 async function scrapeDestinations() {
@@ -108,13 +179,7 @@ async function scrapeDestinations() {
 
 async function runScraper(env) {
 	const timestamp = new Date().toISOString();
-	const results = { timestamp, airport: 'PMI', airlines: [], destinations: [], routes: [], errors: [] };
-
-	try {
-		results.airlines = await scrapeAirlines();
-	} catch (e) {
-		results.errors.push(`airlines: ${e.message}`);
-	}
+	const results = { timestamp, airport: 'PMI', destinations: [], errors: [] };
 
 	try {
 		results.destinations = await scrapeDestinations();
@@ -122,22 +187,36 @@ async function runScraper(env) {
 		results.errors.push(`destinations: ${e.message}`);
 	}
 
-	// Build routes from airlines data (airline -> destination pairs)
-	for (const airline of results.airlines) {
-		for (const dest of airline.destinations) {
-			results.routes.push({
-				airline: airline.name,
-				destination: dest.city,
-				iata: dest.iata,
-			});
-		}
-	}
+	await env.AENA_DATA.put('latest_raw', JSON.stringify(results));
 
-	await env.AENA_DATA.put('latest', JSON.stringify(results));
+	// Build clean version
+	const allAirlines = new Set();
+	const airports = results.destinations.map((d) => {
+		const label = `${cleanCity(d.city)} (${d.iata})`;
+		const airlines = d.airlines.map(cleanAirline);
+		airlines.forEach((a) => allAirlines.add(a));
+		return {
+			label,
+			iata: d.iata,
+			country: d.country,
+			airlines: airlines.sort(),
+		};
+	});
+	airports.sort((a, b) => a.label.localeCompare(b.label));
+
+	const clean = {
+		updated: timestamp,
+		airport: 'PMI',
+		airports,
+		airlines: [...allAirlines].sort(),
+	};
+
+	await env.AENA_DATA.put('latest', JSON.stringify(clean));
 	const dateKey = timestamp.split('T')[0];
-	await env.AENA_DATA.put(`snapshot:${dateKey}`, JSON.stringify(results));
+	await env.AENA_DATA.put(`snapshot:${dateKey}`, JSON.stringify(clean));
+	await env.AENA_DATA.put(`snapshot_raw:${dateKey}`, JSON.stringify(results));
 
-	return results;
+	return clean;
 }
 
 // --- Router ---
@@ -154,42 +233,23 @@ async function handleRequest(request, env) {
 		return jsonResponse({ error: 'Method not allowed' }, 405);
 	}
 
-	// GET /api/airlines
+	// GET /api/airports - Main clean endpoint
+	if (path === '/api/airports') {
+		const data = await env.AENA_DATA.get('latest', 'json');
+		if (!data) return jsonResponse({ error: 'No data yet. Trigger /api/scrape first.' }, 404);
+		return jsonResponse(data);
+	}
+
+	// GET /api/airlines - Deduplicated sorted list
 	if (path === '/api/airlines') {
 		const data = await env.AENA_DATA.get('latest', 'json');
 		if (!data) return jsonResponse({ error: 'No data yet. Trigger /api/scrape first.' }, 404);
-		return jsonResponse({
-			updated: data.timestamp,
-			count: data.airlines.length,
-			airlines: data.airlines,
-		});
+		return jsonResponse({ updated: data.updated, airlines: data.airlines });
 	}
 
-	// GET /api/destinations
-	if (path === '/api/destinations') {
-		const data = await env.AENA_DATA.get('latest', 'json');
-		if (!data) return jsonResponse({ error: 'No data yet. Trigger /api/scrape first.' }, 404);
-		return jsonResponse({
-			updated: data.timestamp,
-			count: data.destinations.length,
-			destinations: data.destinations,
-		});
-	}
-
-	// GET /api/routes
-	if (path === '/api/routes') {
-		const data = await env.AENA_DATA.get('latest', 'json');
-		if (!data) return jsonResponse({ error: 'No data yet. Trigger /api/scrape first.' }, 404);
-		return jsonResponse({
-			updated: data.timestamp,
-			count: data.routes.length,
-			routes: data.routes,
-		});
-	}
-
-	// GET /api/all
-	if (path === '/api/all') {
-		const data = await env.AENA_DATA.get('latest', 'json');
+	// GET /api/raw - Raw AENA data
+	if (path === '/api/raw') {
+		const data = await env.AENA_DATA.get('latest_raw', 'json');
 		if (!data) return jsonResponse({ error: 'No data yet. Trigger /api/scrape first.' }, 404);
 		return jsonResponse(data);
 	}
@@ -214,10 +274,9 @@ async function handleRequest(request, env) {
 		return jsonResponse({
 			service: 'aena-pmi-api',
 			airport: 'PMI - Palma de Mallorca',
-			lastUpdate: data?.timestamp || null,
+			lastUpdate: data?.updated || null,
+			airportsCount: data?.airports?.length || 0,
 			airlinesCount: data?.airlines?.length || 0,
-			destinationsCount: data?.destinations?.length || 0,
-			routesCount: data?.routes?.length || 0,
 		});
 	}
 
@@ -227,10 +286,9 @@ async function handleRequest(request, env) {
 			service: 'AENA PMI Flight Data API',
 			airport: 'PMI - Palma de Mallorca',
 			endpoints: {
-				'/api/airlines': 'Airlines with their destinations',
-				'/api/destinations': 'Destinations with country and serving airlines',
-				'/api/routes': 'All airline-destination route pairs',
-				'/api/all': 'Complete scraped data',
+				'/api/airports': 'Clean airports with airlines (main endpoint)',
+				'/api/airlines': 'Deduplicated sorted airline list',
+				'/api/raw': 'Raw AENA scraped data',
 				'/api/scrape': 'Manually trigger a new scrape',
 				'/api/snapshot/:date': 'Historical snapshot (YYYY-MM-DD)',
 				'/api/status': 'Service status',
