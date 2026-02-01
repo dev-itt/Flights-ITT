@@ -1,0 +1,10 @@
+name = "aena-pmi-api"
+main = "src/index.js"
+compatibility_date = "2024-12-01"
+
+[triggers]
+crons = ["0 6 * * *"]
+
+[[kv_namespaces]]
+binding = "AENA_DATA"
+id = "e49a138d276f4dacaf4c43833fd5db3f"
