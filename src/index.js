@@ -1,4 +1,3 @@
-const AENA_AIRLINES_URL = 'https://www.aena.es/es/palma-de-mallorca/aerolineas-y-destinos/aerolineas.html';
 const AENA_DESTINATIONS_URL = 'https://www.aena.es/es/palma-de-mallorca/aerolineas-y-destinos/destinos-aeropuerto.html';
 
 const CORS_HEADERS = {
@@ -14,121 +13,137 @@ function jsonResponse(data, status = 200) {
 	});
 }
 
-// --- Name cleaning ---
+// --- Name cleaning (rules-based) ---
 
-const AIRLINE_NAMES = {
-	'AIR ALGERIE': 'Air Algerie',
-	'AIR ARABIA MAROC': 'Air Arabia Maroc',
-	'AIR EUROPA': 'Air Europa',
-	'AIR NOSTRUM': 'Air Nostrum',
-	'AUSTRIAN AIRLINES': 'Austrian Airlines',
-	'BA EUROFLYER': 'BA Euroflyer',
-	'BINTER CANARIAS': 'Binter Canarias',
-	'BRITISH CITYFLYER': 'British Cityflyer',
-	'CHAIR AIRLINES AG': 'Chair Airlines',
-	'CONDOR FLUGDIENST': 'Condor',
-	'DISCOVER AIRLINES': 'Discover Airlines',
-	'EASYJET (EZY)': 'EasyJet',
-	'EASYJET EUROPE (EJU)': 'EasyJet Europe',
-	'EDELWEISS AIR AG': 'Edelweiss Air',
-	'EUROWINGS': 'Eurowings',
-	'IBERIA': 'Iberia',
-	'JET2.COM': 'Jet2',
-	'LUFTHANSA': 'Lufthansa',
-	'LUFTHANSA CITY AIRLINES GMBH': 'Lufthansa City Airlines',
-	'LUXAIR': 'Luxair',
-	'MARABU AIRLINES OU': 'Marabu Airlines',
-	'PRIVILEGE STYLE': 'Privilege Style',
-	'RYANAIR (RYR)': 'Ryanair',
-	'SCANDINAVIAN AIRLINES SYSTEM': 'SAS',
-	'SMARTWINGS': 'Smartwings',
-	'SWIFTAIR': 'Swiftair',
-	'SWISS INTERNATIONAL AIR LINES': 'Swiss',
-	'TRANSAVIA': 'Transavia',
-	'TRANSAVIA (TRA)': 'Transavia',
-	'TUIFLY GMBH, LANGENHAGEN': 'TUIfly',
-	'VUELING AIRLINES': 'Vueling',
+// Spanish→English dictionary (language translations, NOT route-specific).
+// Cities whose name is identical in both languages don't need an entry.
+const ES_TO_EN = {
+	'ARGEL': 'Algiers', 'ATENAS': 'Athens', 'BOLONIA': 'Bologna',
+	'BRUSELAS': 'Brussels', 'BUCAREST': 'Bucharest', 'COLONIA': 'Cologne',
+	'COPENHAGUE': 'Copenhagen', 'ESTAMBUL': 'Istanbul', 'ESTOCOLMO': 'Stockholm',
+	'ESTRASBURGO': 'Strasbourg', 'FLORENCIA': 'Florence', 'GINEBRA': 'Geneva',
+	'HAMBURGO': 'Hamburg', 'HANNOVER': 'Hanover', 'LISBOA': 'Lisbon',
+	'LONDRES': 'London', 'LUXEMBURGO': 'Luxembourg', 'MARSELLA': 'Marseille',
+	'MILAN': 'Milan', 'MOSCU': 'Moscow', 'MUNICH': 'Munich', 'MUENSTER': 'Munster',
+	'NAPOLES': 'Naples', 'PEKÍN': 'Beijing', 'PRAGA': 'Prague', 'ROMA': 'Rome',
+	'SEVILLA': 'Seville', 'VARSOVIA': 'Warsaw', 'VENECIA': 'Venice',
+	'VIENA': 'Vienna', 'NORTE': 'North', 'SUR': 'South',
 };
 
-const CITY_NAMES = {
-	'ALICANTE-ELCHE': 'Alicante',
-	'AMSTERDAM /SCHIPHOL': 'Amsterdam',
-	'ANDORRA / LA SEU D\'URGELL': 'Andorra - La Seu d\'Urgell',
-	'ARGEL/ HOUARI BOUMEDIEN': 'Algiers',
-	'ASTURIAS': 'Asturias',
-	'BADEN BADEN-KARLSRUHE  (FKB)': 'Baden-Baden',
-	'BADEN BADEN-KARLSRUHE (FKB)': 'Baden-Baden',
-	'BARCELONA-EL PRAT JOSEP TARRADELLAS': 'Barcelona',
-	'BASEL /MULHOUSE': 'Basel-Mulhouse',
-	'BERLIN-BRANDERBURG WILLY BRANDT': 'Berlin',
-	'BILBAO': 'Bilbao',
-	'BIRMINGHAM / INTERNACIONAL': 'Birmingham',
-	'BOLONIA': 'Bologna',
-	'BREMEN': 'Bremen',
-	'BRISTOL': 'Bristol',
-	'BRUSELAS /CHARLEROI': 'Brussels Charleroi',
-	'COLONIA/BONN': 'Cologne-Bonn',
-	'COPENHAGUE': 'Copenhagen',
-	'DORTMUND': 'Dortmund',
-	'DRESDEN': 'Dresden',
-	'DUSSELDORF': 'Dusseldorf',
-	'DUSSELDORF /WEEZE': 'Dusseldorf Weeze',
-	'EINDHOVEN': 'Eindhoven',
-	'ESTOCOLMO /ARLANDA': 'Stockholm',
-	'FRANKFURT': 'Frankfurt',
-	'FRANKFURT /HAHN': 'Frankfurt Hahn',
-	'GINEBRA': 'Geneva',
-	'GRAN CANARIA': 'Gran Canaria',
-	'GRANADA-JAÉN F.G.L.': 'Granada',
-	'HAMBURGO': 'Hamburg',
-	'HAMBURGO /LUEBECK': 'Hamburg Lubeck',
-	'HANNOVER': 'Hanover',
-	'IBIZA': 'Ibiza',
-	'JEREZ DE LA FRONTERA': 'Jerez',
-	'LEIPZIG': 'Leipzig',
-	'LEON': 'Leon',
-	'LLEIDA - ALGUAIRE': 'Lleida',
-	'LONDRES /GATWICK': 'London Gatwick',
-	'LONDRES /LONDON CITY APT.': 'London City',
-	'LONDRES /LUTON': 'London Luton',
-	'LONDRES /STANSTED': 'London Stansted',
-	'LUXEMBURGO': 'Luxembourg',
-	'MADRID-BARAJAS ADOLFO SUÁREZ': 'Madrid',
-	'MALAGA-COSTA DEL SOL': 'Malaga',
-	'MALTA': 'Malta',
-	'MANCHESTER': 'Manchester',
-	'MELILLA': 'Melilla',
-	'MEMMINGEN': 'Memmingen',
-	'MENORCA': 'Menorca',
-	'MILAN /MALPENSA': 'Milan Malpensa',
-	'MILAN/BERGAMO': 'Milan Bergamo',
-	'MUENSTER': 'Munster',
-	'MUNICH': 'Munich',
-	'NADOR / EL AROUI': 'Nador',
-	'NUREMBERG': 'Nuremberg',
-	'PARIS /ORLY': 'Paris Orly',
-	'PRAGA': 'Prague',
-	'SANTIAGO-ROSALÍA DE CASTRO': 'Santiago de Compostela',
-	'SEVILLA': 'Seville',
-	'SOFIA': 'Sofia',
-	'SOUTHEND': 'Southend',
-	'STUTTGART': 'Stuttgart',
-	'TENERIFE NORTE-C. LA LAGUNA': 'Tenerife North',
-	'TREVISO/S.ANGELO (MIL)': 'Treviso',
-	'VALENCIA': 'Valencia',
-	'VARSOVIA': 'Warsaw',
-	'VIENA': 'Vienna',
-	'VIGO': 'Vigo',
-	'ZARAGOZA': 'Zaragoza',
-	'ZURICH': 'Zurich',
-};
+// Airport-specific names to strip from /sub-airport part (matched as full string).
+// These are airport names, NOT city/district names (Gatwick, Luton etc. are kept).
+const AIRPORT_ONLY_NAMES = [
+	'SCHIPHOL', 'ARLANDA', 'HOUARI BOUMEDIEN', 'EL AROUI',
+	'INTERNACIONAL', 'INTERNATIONAL',
+];
 
-function cleanAirline(raw) {
-	return AIRLINE_NAMES[raw] || raw.replace(/\s*\([A-Z]{3}\)\s*$/, '').replace(/\bGMBH\b.*$/i, '').replace(/\bAG\b\s*$/i, '').replace(/\bOU\b\s*$/i, '').trim().split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+// Brand casing for airlines with unconventional capitalization.
+// Matched by prefix so "EASYJET EUROPE" → "EasyJet Europe".
+const BRAND_PREFIX = [
+	['EASYJET', 'EasyJet'],
+	['TUIFLY', 'TUIfly'],
+	['JET2', 'Jet2'],
+];
+
+function titleCase(str) {
+	return str
+		.toLowerCase()
+		.split(/\s+/)
+		.filter(Boolean)
+		.map((w) => {
+			const upper = w.toUpperCase();
+			if (ES_TO_EN[upper]) return ES_TO_EN[upper];
+			if (['de', 'del', 'la', 'el', 'les', 'di', 'du', 'von', 'van'].includes(w)) return w;
+			return w.charAt(0).toUpperCase() + w.slice(1);
+		})
+		.join(' ');
 }
 
 function cleanCity(raw) {
-	return CITY_NAMES[raw] || raw.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+	let name = raw;
+
+	// 1. Strip after first `-` (removes official airport names)
+	//    "BARCELONA-EL PRAT JOSEP TARRADELLAS" → "BARCELONA"
+	//    "TENERIFE NORTE-C. LA LAGUNA" → "TENERIFE NORTE"
+	if (name.includes('-')) {
+		name = name.split('-')[0].trim();
+	}
+
+	// 2. Remove trailing abbreviations like "F.G.L."
+	name = name.replace(/\s+([A-Z]\.){1,4}\s*$/, '').trim();
+
+	// 3. Remove stray parenthetical codes "(FKB)" from double-code patterns
+	name = name.replace(/\s*\([A-Z]{3}\)\s*/g, '').trim();
+
+	// 4. Handle `/` sub-airports
+	if (name.includes('/')) {
+		let [mainCity, subAirport] = name.split(/\s*\/\s*/);
+		// Remove "APT." from sub-airport
+		subAirport = subAirport.replace(/APT\.?/gi, '').trim();
+		// Remove S.ANGELO style prefixes
+		subAirport = subAirport.replace(/^S\.\s*/i, '').trim();
+		// Check if the entire sub-airport is an airport-only name to strip
+		const subUpper = subAirport.toUpperCase().trim();
+		const isAirportOnly = !subUpper || AIRPORT_ONLY_NAMES.some((n) => subUpper === n);
+		if (isAirportOnly) {
+			return titleCase(mainCity);
+		}
+
+		const mainClean = titleCase(mainCity);
+		const subClean = titleCase(subAirport);
+
+		// Avoid duplication: "London London City" → "London City"
+		if (subClean.toLowerCase().startsWith(mainClean.toLowerCase())) {
+			return subClean;
+		}
+		return mainClean + ' ' + subClean;
+	}
+
+	return titleCase(name);
+}
+
+function cleanAirline(raw) {
+	let name = raw;
+
+	// 1. Strip IATA code in parens: "RYANAIR (RYR)" → "RYANAIR"
+	name = name.replace(/\s*\([A-Z]{3}\)\s*$/, '');
+
+	// 2. Strip everything from GMBH onwards (handles "GMBH, LANGENHAGEN" etc.)
+	name = name.replace(/[,\s]+GMBH\b.*/i, '');
+
+	// 3. Strip trailing legal forms: AG, OU, AB, S.A., LTD, PLC
+	name = name.replace(/\s+(AG|OU|AB|AS|SE|S\.?A\.?|LTD|PLC|INC)\s*$/i, '');
+
+	// 4. Strip ONLY specific noise words that obscure the brand
+	//    Do NOT strip "AIRLINES" generically (Austrian Airlines, Discover Airlines need it)
+	name = name.replace(/\s+FLUGDIENST\b/i, '');
+	name = name.replace(/\s+INTERNATIONAL AIR LINES\b/i, '');
+
+	name = name.trim();
+
+	// 5. Full-name special cases
+	const upper = name.toUpperCase();
+	if (upper === 'SCANDINAVIAN AIRLINES SYSTEM') return 'SAS';
+
+	// 6. Brand prefix matching (handles "EASYJET", "EASYJET EUROPE", "JET2.COM" etc.)
+	for (const [prefix, brand] of BRAND_PREFIX) {
+		if (upper === prefix || upper.startsWith(prefix + '.')) return brand;
+		if (upper.startsWith(prefix + ' ')) {
+			const rest = name.slice(prefix.length).trim();
+			return brand + ' ' + titleCase(rest);
+		}
+	}
+
+	// 7. Title case with special tokens
+	return name
+		.toLowerCase()
+		.split(/\s+/)
+		.filter(Boolean)
+		.map((w) => {
+			if (['ba', 'sas'].includes(w)) return w.toUpperCase();
+			return w.charAt(0).toUpperCase() + w.slice(1);
+		})
+		.join(' ');
 }
 
 // --- HTML Parsing ---
@@ -189,18 +204,13 @@ async function runScraper(env) {
 
 	await env.AENA_DATA.put('latest_raw', JSON.stringify(results));
 
-	// Build clean version
 	const allAirlines = new Set();
 	const airports = results.destinations.map((d) => {
-		const label = `${cleanCity(d.city)} (${d.iata})`;
-		const airlines = d.airlines.map(cleanAirline);
+		const cityClean = cleanCity(d.city);
+		const label = d.iata ? `${cityClean} (${d.iata})` : cityClean;
+		const airlines = [...new Set(d.airlines.map(cleanAirline))].sort();
 		airlines.forEach((a) => allAirlines.add(a));
-		return {
-			label,
-			iata: d.iata,
-			country: d.country,
-			airlines: airlines.sort(),
-		};
+		return { label, iata: d.iata, country: d.country, airlines };
 	});
 	airports.sort((a, b) => a.label.localeCompare(b.label));
 
@@ -221,6 +231,11 @@ async function runScraper(env) {
 
 // --- Router ---
 
+function checkAuth(request, env) {
+	const key = request.headers.get('x-api-key') || new URL(request.url).searchParams.get('key');
+	return key === env.API_KEY;
+}
+
 async function handleRequest(request, env) {
 	const url = new URL(request.url);
 	const path = url.pathname;
@@ -233,28 +248,32 @@ async function handleRequest(request, env) {
 		return jsonResponse({ error: 'Method not allowed' }, 405);
 	}
 
-	// GET /api/airports - Main clean endpoint
+	// Public endpoints: / and /api/status
+	// All /api/* endpoints require API key
+	if (path.startsWith('/api/') && path !== '/api/status') {
+		if (!checkAuth(request, env)) {
+			return jsonResponse({ error: 'Unauthorized. Provide x-api-key header or ?key= param.' }, 401);
+		}
+	}
+
 	if (path === '/api/airports') {
 		const data = await env.AENA_DATA.get('latest', 'json');
 		if (!data) return jsonResponse({ error: 'No data yet. Trigger /api/scrape first.' }, 404);
 		return jsonResponse(data);
 	}
 
-	// GET /api/airlines - Deduplicated sorted list
 	if (path === '/api/airlines') {
 		const data = await env.AENA_DATA.get('latest', 'json');
 		if (!data) return jsonResponse({ error: 'No data yet. Trigger /api/scrape first.' }, 404);
 		return jsonResponse({ updated: data.updated, airlines: data.airlines });
 	}
 
-	// GET /api/raw - Raw AENA data
 	if (path === '/api/raw') {
 		const data = await env.AENA_DATA.get('latest_raw', 'json');
 		if (!data) return jsonResponse({ error: 'No data yet. Trigger /api/scrape first.' }, 404);
 		return jsonResponse(data);
 	}
 
-	// GET /api/snapshot/:date
 	if (path.startsWith('/api/snapshot/')) {
 		const date = path.replace('/api/snapshot/', '');
 		const data = await env.AENA_DATA.get(`snapshot:${date}`, 'json');
@@ -262,13 +281,11 @@ async function handleRequest(request, env) {
 		return jsonResponse(data);
 	}
 
-	// GET /api/scrape - Manual trigger
 	if (path === '/api/scrape') {
 		const result = await runScraper(env);
 		return jsonResponse({ message: 'Scrape completed', ...result });
 	}
 
-	// GET /api/status
 	if (path === '/api/status') {
 		const data = await env.AENA_DATA.get('latest', 'json');
 		return jsonResponse({
@@ -280,7 +297,6 @@ async function handleRequest(request, env) {
 		});
 	}
 
-	// Root
 	if (path === '/' || path === '') {
 		return jsonResponse({
 			service: 'AENA PMI Flight Data API',
